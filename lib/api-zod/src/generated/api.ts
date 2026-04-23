@@ -15,3 +15,85 @@ export const HealthCheckResponse = zod.object({
   ok: zod.boolean().describe("Whether the server is healthy"),
   ts: zod.coerce.date().describe("Server timestamp in ISO 8601 format"),
 });
+
+/**
+ * Returns an access token (JWT, 15 min TTL), an opaque refresh token
+(30 day TTL), and the authenticated user profile. Failures return a
+generic 401 regardless of whether the email exists.
+
+ * @summary Log in with email and password
+ */
+
+export const LoginBody = zod.object({
+  email: zod.string().email(),
+  password: zod.string().min(1),
+});
+
+export const LoginResponse = zod.object({
+  accessToken: zod.string(),
+  refreshToken: zod.string(),
+  user: zod.object({
+    id: zod.string().uuid(),
+    email: zod.string().email(),
+    role: zod.enum(["super_admin", "merchant_admin", "merchant_user"]),
+    status: zod.enum(["active", "suspended"]),
+    merchantId: zod.string().uuid().nullable(),
+    merchantName: zod.string().nullable(),
+    lastLoginAt: zod.coerce.date().nullable(),
+  }),
+});
+
+/**
+ * Revokes the supplied refresh token and issues a fresh access/refresh
+pair. Reusing a rotated token is rejected with 401.
+
+ * @summary Rotate the refresh token
+ */
+
+export const RefreshBody = zod.object({
+  refreshToken: zod.string().min(1),
+});
+
+export const RefreshResponse = zod.object({
+  accessToken: zod.string(),
+  refreshToken: zod.string(),
+  user: zod.object({
+    id: zod.string().uuid(),
+    email: zod.string().email(),
+    role: zod.enum(["super_admin", "merchant_admin", "merchant_user"]),
+    status: zod.enum(["active", "suspended"]),
+    merchantId: zod.string().uuid().nullable(),
+    merchantName: zod.string().nullable(),
+    lastLoginAt: zod.coerce.date().nullable(),
+  }),
+});
+
+/**
+ * Requires a valid access token. If a refreshToken is supplied, only the
+matching session is revoked. If omitted, every active session for the
+authenticated user is revoked.
+
+ * @summary Revoke a session (or all sessions)
+ */
+
+export const LogoutBody = zod.object({
+  refreshToken: zod
+    .string()
+    .min(1)
+    .optional()
+    .describe("If omitted, every active session for the user is revoked."),
+});
+
+/**
+ * Returns the authenticated user, including the merchant name (null for super_admin).
+ * @summary Current user profile
+ */
+export const WhoamiResponse = zod.object({
+  id: zod.string().uuid(),
+  email: zod.string().email(),
+  role: zod.enum(["super_admin", "merchant_admin", "merchant_user"]),
+  status: zod.enum(["active", "suspended"]),
+  merchantId: zod.string().uuid().nullable(),
+  merchantName: zod.string().nullable(),
+  lastLoginAt: zod.coerce.date().nullable(),
+});

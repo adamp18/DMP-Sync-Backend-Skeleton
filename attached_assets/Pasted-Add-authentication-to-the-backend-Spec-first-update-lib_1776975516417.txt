@@ -1,0 +1,26 @@
+Add authentication to the backend. Spec-first: update lib/api-spec/openapi.yaml first, regenerate clients, then implement in artifacts/api-server.
+
+Four endpoints under /api/auth:
+- POST /auth/login — email + password → { accessToken, refreshToken, user }
+- POST /auth/refresh — rotates: old refresh gets revoked, new pair issued
+- POST /auth/logout — requires auth; revokes the session for the provided refreshToken, OR all sessions for the user if none provided
+- GET /auth/whoami — requires auth; returns the user profile including joined merchantName (null for super_admin)
+
+Design:
+- Access tokens: JWT, HS256, 15-minute TTL, stateless, signed with env.JWT_SECRET. Payload should carry sub (user id), role, merchantId.
+- Refresh tokens: opaque random strings (NOT JWTs), 30-day TTL, sha256 hash stored in the sessions table so we can revoke. Rotate on every /refresh call.
+- Login failures must not leak whether the email exists — same 401 whether user is missing or password is wrong. Also check status='active' on both the user and (for non-super_admins) their merchant.
+- Use bcryptjs with cost 12 for password hashing.
+
+Add a requireAuth middleware (reads Bearer token, verifies JWT, loads user, enforces active status, attaches req.user) and a requireRole(...roles) middleware for authorization.
+
+Also add a seed script scripts/seed-super-admin.ts that upserts a super_admin from SEED_SUPER_ADMIN_EMAIL + SEED_SUPER_ADMIN_PASSWORD env vars. Abort with a clear error if either is missing — no default password. Wire it up as pnpm --filter @workspace/api-server run seed:super-admin.
+
+Verify end-to-end:
+- Seed a super_admin with my email (adampitts@dmprocessing.com) and a temp password I'll provide at run time
+- Login works, returns a valid pair
+- whoami with the access token returns the profile
+- refresh rotates correctly AND the old refresh token is rejected after rotation (this is the important security check — test it)
+- logout revokes the session
+
+Report back with the final openapi.yaml auth section, a short file diff, and curl transcripts proving all four endpoints + the rotation-rejection check.

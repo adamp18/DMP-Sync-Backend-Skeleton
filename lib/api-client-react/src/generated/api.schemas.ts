@@ -11,3 +11,64 @@ export interface HealthStatus {
   /** Server timestamp in ISO 8601 format */
   ts: string;
 }
+
+export interface LoginRequest {
+  email: string;
+  /** @minLength 1 */
+  password: string;
+}
+
+export interface RefreshRequest {
+  /** @minLength 1 */
+  refreshToken: string;
+}
+
+export interface LogoutRequest {
+  /**
+   * If omitted, every active session for the user is revoked.
+   * @minLength 1
+   */
+  refreshToken?: string;
+}
+
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
+
+export const UserRole = {
+  super_admin: "super_admin",
+  merchant_admin: "merchant_admin",
+  merchant_user: "merchant_user",
+} as const;
+
+export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus];
+
+export const UserStatus = {
+  active: "active",
+  suspended: "suspended",
+} as const;
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  merchantId: string | null;
+  merchantName: string | null;
+  lastLoginAt: string | null;
+}
+
+export interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: UserProfile;
+}
+
+export interface ErrorDetail {
+  code: string;
+  message: string;
+  /** Optional additional error context */
+  details?: unknown;
+}
+
+export interface ErrorResponse {
+  error: ErrorDetail;
+}

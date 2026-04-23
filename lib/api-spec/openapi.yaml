@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
 paths:
   /health:
     get:
@@ -24,7 +26,120 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Log in with email and password
+      description: |
+        Returns an access token (JWT, 15 min TTL), an opaque refresh token
+        (30 day TTL), and the authenticated user profile. Failures return a
+        generic 401 regardless of whether the email exists.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/refresh:
+    post:
+      operationId: refresh
+      tags: [auth]
+      summary: Rotate the refresh token
+      description: |
+        Revokes the supplied refresh token and issues a fresh access/refresh
+        pair. Reusing a rotated token is rejected with 401.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: New token pair issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Refresh token invalid, revoked, or expired
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Revoke a session (or all sessions)
+      description: |
+        Requires a valid access token. If a refreshToken is supplied, only the
+        matching session is revoked. If omitted, every active session for the
+        authenticated user is revoked.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequest"
+      responses:
+        "204":
+          description: Sessions revoked
+        "401":
+          description: Missing or invalid access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/whoami:
+    get:
+      operationId: whoami
+      tags: [auth]
+      summary: Current user profile
+      description: Returns the authenticated user, including the merchant name (null for super_admin).
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Missing or invalid access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     HealthStatus:
       type: object
@@ -39,3 +154,84 @@ components:
       required:
         - ok
         - ts
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+      required: [email, password]
+    RefreshRequest:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+          minLength: 1
+      required: [refreshToken]
+    LogoutRequest:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+          minLength: 1
+          description: If omitted, every active session for the user is revoked.
+    UserRole:
+      type: string
+      enum: [super_admin, merchant_admin, merchant_user]
+    UserStatus:
+      type: string
+      enum: [active, suspended]
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/UserRole"
+        status:
+          $ref: "#/components/schemas/UserStatus"
+        merchantId:
+          type: string
+          format: uuid
+          nullable: true
+        merchantName:
+          type: string
+          nullable: true
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, email, role, status, merchantId, merchantName, lastLoginAt]
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserProfile"
+      required: [accessToken, refreshToken, user]
+    ErrorDetail:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          description: Optional additional error context
+      required: [code, message]
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          $ref: "#/components/schemas/ErrorDetail"
+      required: [error]

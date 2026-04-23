@@ -25,7 +25,7 @@ if (!parsed.success) {
   // eslint-disable-next-line no-console
   console.error(
     "Invalid environment configuration:",
-    z.treeifyError(parsed.error),
+    JSON.stringify(parsed.error.format(), null, 2),
   );
   process.exit(1);
 }

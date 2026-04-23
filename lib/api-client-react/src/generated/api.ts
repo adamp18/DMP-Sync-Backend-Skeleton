@@ -5,18 +5,29 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  AuthResponse,
+  ErrorResponse,
+  HealthStatus,
+  LoginRequest,
+  LogoutRequest,
+  RefreshRequest,
+  UserProfile,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -92,6 +103,339 @@ export function useHealthCheck<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getHealthCheckQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns an access token (JWT, 15 min TTL), an opaque refresh token
+(30 day TTL), and the authenticated user profile. Failures return a
+generic 401 regardless of whether the email exists.
+
+ * @summary Log in with email and password
+ */
+export const getLoginUrl = () => {
+  return `/api/auth/login`;
+};
+
+export const login = async (
+  loginRequest: LoginRequest,
+  options?: RequestInit,
+): Promise<AuthResponse> => {
+  return customFetch<AuthResponse>(getLoginUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(loginRequest),
+  });
+};
+
+export const getLoginMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof login>>,
+    TError,
+    { data: BodyType<LoginRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof login>>,
+  TError,
+  { data: BodyType<LoginRequest> },
+  TContext
+> => {
+  const mutationKey = ["login"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof login>>,
+    { data: BodyType<LoginRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return login(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LoginMutationResult = NonNullable<
+  Awaited<ReturnType<typeof login>>
+>;
+export type LoginMutationBody = BodyType<LoginRequest>;
+export type LoginMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Log in with email and password
+ */
+export const useLogin = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof login>>,
+    TError,
+    { data: BodyType<LoginRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof login>>,
+  TError,
+  { data: BodyType<LoginRequest> },
+  TContext
+> => {
+  return useMutation(getLoginMutationOptions(options));
+};
+
+/**
+ * Revokes the supplied refresh token and issues a fresh access/refresh
+pair. Reusing a rotated token is rejected with 401.
+
+ * @summary Rotate the refresh token
+ */
+export const getRefreshUrl = () => {
+  return `/api/auth/refresh`;
+};
+
+export const refresh = async (
+  refreshRequest: RefreshRequest,
+  options?: RequestInit,
+): Promise<AuthResponse> => {
+  return customFetch<AuthResponse>(getRefreshUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(refreshRequest),
+  });
+};
+
+export const getRefreshMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof refresh>>,
+    TError,
+    { data: BodyType<RefreshRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof refresh>>,
+  TError,
+  { data: BodyType<RefreshRequest> },
+  TContext
+> => {
+  const mutationKey = ["refresh"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof refresh>>,
+    { data: BodyType<RefreshRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return refresh(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RefreshMutationResult = NonNullable<
+  Awaited<ReturnType<typeof refresh>>
+>;
+export type RefreshMutationBody = BodyType<RefreshRequest>;
+export type RefreshMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Rotate the refresh token
+ */
+export const useRefresh = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof refresh>>,
+    TError,
+    { data: BodyType<RefreshRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof refresh>>,
+  TError,
+  { data: BodyType<RefreshRequest> },
+  TContext
+> => {
+  return useMutation(getRefreshMutationOptions(options));
+};
+
+/**
+ * Requires a valid access token. If a refreshToken is supplied, only the
+matching session is revoked. If omitted, every active session for the
+authenticated user is revoked.
+
+ * @summary Revoke a session (or all sessions)
+ */
+export const getLogoutUrl = () => {
+  return `/api/auth/logout`;
+};
+
+export const logout = async (
+  logoutRequest?: LogoutRequest,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getLogoutUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(logoutRequest),
+  });
+};
+
+export const getLogoutMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof logout>>,
+    TError,
+    { data: BodyType<LogoutRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof logout>>,
+  TError,
+  { data: BodyType<LogoutRequest> },
+  TContext
+> => {
+  const mutationKey = ["logout"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof logout>>,
+    { data: BodyType<LogoutRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return logout(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LogoutMutationResult = NonNullable<
+  Awaited<ReturnType<typeof logout>>
+>;
+export type LogoutMutationBody = BodyType<LogoutRequest>;
+export type LogoutMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Revoke a session (or all sessions)
+ */
+export const useLogout = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof logout>>,
+    TError,
+    { data: BodyType<LogoutRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof logout>>,
+  TError,
+  { data: BodyType<LogoutRequest> },
+  TContext
+> => {
+  return useMutation(getLogoutMutationOptions(options));
+};
+
+/**
+ * Returns the authenticated user, including the merchant name (null for super_admin).
+ * @summary Current user profile
+ */
+export const getWhoamiUrl = () => {
+  return `/api/auth/whoami`;
+};
+
+export const whoami = async (options?: RequestInit): Promise<UserProfile> => {
+  return customFetch<UserProfile>(getWhoamiUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getWhoamiQueryKey = () => {
+  return [`/api/auth/whoami`] as const;
+};
+
+export const getWhoamiQueryOptions = <
+  TData = Awaited<ReturnType<typeof whoami>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof whoami>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getWhoamiQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof whoami>>> = ({
+    signal,
+  }) => whoami({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof whoami>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type WhoamiQueryResult = NonNullable<Awaited<ReturnType<typeof whoami>>>;
+export type WhoamiQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Current user profile
+ */
+
+export function useWhoami<
+  TData = Awaited<ReturnType<typeof whoami>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof whoami>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getWhoamiQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
