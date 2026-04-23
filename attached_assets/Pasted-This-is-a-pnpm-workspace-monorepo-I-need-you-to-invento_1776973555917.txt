@@ -1,0 +1,44 @@
+This is a pnpm workspace monorepo. I need you to inventory it and confirm the dev loop works before we start adding features. Please do exactly the following:
+
+Step 1 — Inventory the workspace
+- List all workspace packages (look at pnpm-workspace.yaml and artifacts/)
+- For each package under artifacts/, show:
+  - The package.json name, version, and scripts
+  - The top-level src/ folder structure (files + subfolders, 2 levels deep)
+- Show the root-level files: package.json, pnpm-workspace.yaml, tsconfig.json, tsconfig.*.json if present
+- Identify the OpenAPI spec file (likely somewhere in artifacts/api-spec/)
+
+Step 2 — Inventory the API server
+- Show the contents of artifacts/api-server/src/index.ts (or wherever the entry point is — check package.json "main" / "scripts.dev")
+- List all existing routes registered in the Express app
+- Show artifacts/api-server/src/lib/env.ts so I know which env vars are already validated
+
+Step 3 — Inventory the DB package
+- Show all files under artifacts/db/src/
+- List every table defined in the Drizzle schema
+- Note any existing migrations folder
+
+Step 4 — Inventory the API spec
+- Show the contents of artifacts/api-spec/openapi.yaml (or .json) if one exists
+- If the spec has existing endpoints defined, list them
+- Show the Orval config file
+
+Step 5 — Verify the dev loop
+- Run: pnpm install
+- Run: pnpm --filter @workspace/api-server run dev
+- Confirm it starts on some port with no errors (share the output)
+- If there's a health route (GET /api/health, /health, /ping, etc.), curl it and show the response
+- If there's no health route, ADD one at GET /api/health returning { ok: true, ts: Date.now() }, put it in the right place according to the project's existing route structure, regenerate the OpenAPI types if needed, and re-run the dev server
+- Curl the health route and show a 200 response
+
+Step 6 — Report
+Summarize in one message:
+- Workspace package names and their purposes
+- Existing API endpoints (if any)
+- Existing DB tables (if any)
+- Existing env vars
+- How to start dev
+- Health check URL and confirmed response
+- Any blockers or surprises
+
+Do NOT add database tables, auth routes, or business logic in this prompt. This is a discovery + smoke-test pass only.
