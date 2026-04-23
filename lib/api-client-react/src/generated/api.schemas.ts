@@ -6,5 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 export interface HealthStatus {
-  status: string;
+  /** Whether the server is healthy */
+  ok: boolean;
+  /** Server timestamp in ISO 8601 format */
+  ts: string;
 }

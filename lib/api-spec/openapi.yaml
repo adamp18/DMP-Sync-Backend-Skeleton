@@ -11,12 +11,12 @@ tags:
   - name: health
     description: Health operations
 paths:
-  /healthz:
+  /health:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
+      description: Returns server health status and current timestamp
       responses:
         "200":
           description: Healthy
@@ -29,8 +29,13 @@ components:
     HealthStatus:
       type: object
       properties:
-        status:
+        ok:
+          type: boolean
+          description: Whether the server is healthy
+        ts:
           type: string
+          format: date-time
+          description: Server timestamp in ISO 8601 format
       required:
-        - status
-
+        - ok
+        - ts

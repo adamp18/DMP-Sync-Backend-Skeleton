@@ -8,9 +8,10 @@
 import * as zod from "zod";
 
 /**
- * Returns server health status
+ * Returns server health status and current timestamp
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
-  status: zod.string(),
+  ok: zod.boolean().describe("Whether the server is healthy"),
+  ts: zod.coerce.date().describe("Server timestamp in ISO 8601 format"),
 });

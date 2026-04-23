@@ -31,10 +31,11 @@ ORM, JWT auth, Zod validation, and pino logging.
 
    On Replit, prefer Replit Secrets over a local `.env` file in production.
 
-3. Push the (currently empty) Drizzle schema to the database:
+3. Push the (currently empty) Drizzle schema to the database (owned by the
+   shared `@workspace/db` package):
 
    ```bash
-   pnpm --filter @workspace/api-server run db:push
+   pnpm --filter @workspace/db run push
    ```
 
 ## Scripts
@@ -44,9 +45,10 @@ ORM, JWT auth, Zod validation, and pino logging.
 | `dev`            | Run the server in watch mode (`tsx watch`)        |
 | `build`          | Bundle the server with esbuild into `dist/`      |
 | `start`          | Run the bundled production server                 |
-| `db:push`        | Push Drizzle schema changes to the database       |
-| `db:studio`      | Open Drizzle Studio against the configured DB     |
 | `typecheck`      | Run `tsc --noEmit`                                |
+
+Drizzle schema and migrations are managed in `lib/db`. Use
+`pnpm --filter @workspace/db run push` to apply schema changes.
 
 Run any of them with:
 
@@ -67,9 +69,6 @@ curl http://localhost:$PORT/api/health
 src/
 ├── index.ts                 # Entry point — starts Express
 ├── app.ts                   # Express app factory (CORS, JSON, logging)
-├── db/
-│   ├── client.ts            # Drizzle client + pg Pool
-│   └── schema.ts            # Drizzle table definitions (empty for now)
 ├── lib/
 │   ├── env.ts               # Zod-validated environment loader
 │   └── logger.ts            # pino instance
