@@ -1,0 +1,15 @@
+Add the foundational schema for the DMP Payment Links backend to lib/db/src/schema/. We need five tables. I'll describe what they're for — you pick the idiomatic Drizzle + postgres-js shape. Use uuid primary keys, timestamptz for all timestamps, pgEnum for fixed-set status/role fields.
+
+1. merchants — tenants. Holds Fluid Pay credentials (treat the API key as ciphertext; we'll add encryption later — just make the column ready), card/ACH processor IDs, branding (company name, logo URL, payable-to address), a default email template string, and an active/suspended status.
+
+2. users — belongs to a merchant, OR is a super_admin (nullable merchantId). Roles: super_admin, merchant_admin, merchant_user. Enforce at the DB level that super_admin ↔ merchantId IS NULL via a CHECK constraint. Fields: email (unique, case-insensitive lookup), passwordHash, role, status, lastLoginAt.
+
+3. sessions — for refresh token tracking and revocation. Store a sha256 hash of the refresh token, not the token itself. Include userAgent, ipAddress (inet if clean, else text), issuedAt, expiresAt, revokedAt (nullable — null = active).
+
+4. merchantPlatforms — which third-party apps each merchant has enabled (ServiceTitan today, Tekmetric/Housecall Pro/Jobber later). Fields: merchantId, platform (text machine ID, NOT an enum — kept open), status (enabled/disabled), config (jsonb for per-platform settings like ST tenant ID in v2). Unique on (merchantId, platform).
+
+5. transactions — audit log of every payment link generated. Fields: merchantId, userId, sourcePlatform, externalInvoiceId (platform's ID for the invoice), invoiceNumber (user-facing), amount (numeric(12,2), dollars not cents), customerName, customerEmail, fluidPayInvoiceId, paymentLinkUrl, status (created/failed), errorMessage, createdAt. Index for the "recent activity" query pattern (merchantId + createdAt desc).
+
+Generate the migration, apply it against the Replit postgres, and verify tables exist. Don't seed any data yet.
+
+Report back with the migration SQL filename and \dt output.
