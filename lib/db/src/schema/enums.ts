@@ -21,6 +21,17 @@ export const merchantPlatformStatusEnum = pgEnum("merchant_platform_status", [
   "disabled",
 ]);
 
+export const gatewayNameEnum = pgEnum("gateway_name", [
+  "fluidpay",
+  "nmi",
+  "dejavoo_spin",
+]);
+
+export const merchantGatewayStatusEnum = pgEnum("merchant_gateway_status", [
+  "active",
+  "disabled",
+]);
+
 export const transactionStatusEnum = pgEnum("transaction_status", [
   "created",
   "failed",

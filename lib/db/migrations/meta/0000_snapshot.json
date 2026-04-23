@@ -1,5 +1,5 @@
 {
-  "id": "b480502c-2eb7-4332-8f20-3c53a1feca1c",
+  "id": "e2dcbf55-05e4-47c5-919c-2eb1c2ec1d85",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -14,6 +14,18 @@
           "primaryKey": true,
           "notNull": true,
           "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         },
         "company_name": {
           "name": "company_name",
@@ -37,25 +49,8 @@
           "name": "default_email_template",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
-        },
-        "fluid_pay_api_key_ciphertext": {
-          "name": "fluid_pay_api_key_ciphertext",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "fluid_pay_card_processor_id": {
-          "name": "fluid_pay_card_processor_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "fluid_pay_ach_processor_id": {
-          "name": "fluid_pay_ach_processor_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "''"
         },
         "status": {
           "name": "status",
@@ -80,8 +75,151 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "merchants_slug_unique_idx": {
+          "name": "merchants_slug_unique_idx",
+          "columns": [
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.merchant_gateways": {
+      "name": "merchant_gateways",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "merchant_id": {
+          "name": "merchant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gateway": {
+          "name": "gateway",
+          "type": "gateway_name",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_label": {
+          "name": "display_label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "credentials": {
+          "name": "credentials",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "is_primary": {
+          "name": "is_primary",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "status": {
+          "name": "status",
+          "type": "merchant_gateway_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "merchant_gateways_merchant_gateway_unique_idx": {
+          "name": "merchant_gateways_merchant_gateway_unique_idx",
+          "columns": [
+            {
+              "expression": "merchant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "gateway",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "merchant_gateways_one_primary_per_merchant_idx": {
+          "name": "merchant_gateways_one_primary_per_merchant_idx",
+          "columns": [
+            {
+              "expression": "merchant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"merchant_gateways\".\"is_primary\" = true",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "merchant_gateways_merchant_id_merchants_id_fk": {
+          "name": "merchant_gateways_merchant_id_merchants_id_fk",
+          "tableFrom": "merchant_gateways",
+          "tableTo": "merchants",
+          "columnsFrom": [
+            "merchant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -438,6 +576,13 @@
           "primaryKey": false,
           "notNull": true
         },
+        "gateway": {
+          "name": "gateway",
+          "type": "gateway_name",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
         "external_invoice_id": {
           "name": "external_invoice_id",
           "type": "text",
@@ -448,7 +593,7 @@
           "name": "invoice_number",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "amount": {
           "name": "amount",
@@ -468,8 +613,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "fluid_pay_invoice_id": {
-          "name": "fluid_pay_invoice_id",
+        "gateway_invoice_id": {
+          "name": "gateway_invoice_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -522,6 +667,42 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "transactions_user_id_idx": {
+          "name": "transactions_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "transactions_source_external_invoice_idx": {
+          "name": "transactions_source_external_invoice_idx",
+          "columns": [
+            {
+              "expression": "source_platform",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "external_invoice_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -535,7 +716,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         },
         "transactions_user_id_users_id_fk": {
@@ -560,6 +741,23 @@
     }
   },
   "enums": {
+    "public.gateway_name": {
+      "name": "gateway_name",
+      "schema": "public",
+      "values": [
+        "fluidpay",
+        "nmi",
+        "dejavoo_spin"
+      ]
+    },
+    "public.merchant_gateway_status": {
+      "name": "merchant_gateway_status",
+      "schema": "public",
+      "values": [
+        "active",
+        "disabled"
+      ]
+    },
     "public.merchant_platform_status": {
       "name": "merchant_platform_status",
       "schema": "public",

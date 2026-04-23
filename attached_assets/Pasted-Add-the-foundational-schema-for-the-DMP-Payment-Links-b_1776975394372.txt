@@ -1,0 +1,44 @@
+Add the foundational schema for the DMP Payment Links backend to lib/db/src/schema/. The architecture now includes multi-gateway support — we support three payment gateways at launch (Fluid Pay, NMI, Dejavoo SPIn) via a backend adapter pattern, so gateway credentials live on a dedicated table, not on merchants.
+
+Six tables. I'll describe what they're for — you pick the idiomatic Drizzle + postgres-js shape. Use uuid primary keys, timestamptz for all timestamps, pgEnum for fixed-set status/role fields.
+
+1. merchants — tenants. Just merchant identity and branding now. NO gateway credentials on this table.
+   - Fields: name, slug (unique, URL-safe), companyName, logoUrl, payableToAddress, defaultEmailTemplate (text, default ''), status (active/suspended).
+
+2. merchantGateways — one row per (merchant, gateway) configuration.
+   - merchantId (FK, cascade delete)
+   - gateway (pgEnum 'gateway_name': 'fluidpay', 'nmi', 'dejavoo_spin')
+   - displayLabel (text — merchant-facing label like "Production FP" or "NMI sandbox")
+   - credentials (jsonb — shape validated per-gateway in code, not the DB; treat as ciphertext eventually, we'll add encryption later)
+   - isPrimary (boolean, default false)
+   - status (pgEnum 'merchant_gateway_status': 'active', 'disabled')
+   - createdAt, updatedAt
+   - Unique constraint: (merchantId, gateway) — a merchant has at most one config per gateway type
+   - **Partial unique index**: exactly one primary gateway per merchant. Use a partial unique index on (merchantId) WHERE isPrimary = true. This is the important constraint.
+
+3. users — belongs to a merchant OR is a super_admin (nullable merchantId). Roles: super_admin, merchant_admin, merchant_user. Enforce at the DB level that super_admin ↔ merchantId IS NULL via a CHECK constraint. Fields: email (unique, case-insensitive lookup), passwordHash, role, status, lastLoginAt.
+
+4. sessions — for refresh token tracking and revocation. Store sha256 hash of the refresh token, not the token itself. Include userAgent, ipAddress, issuedAt, expiresAt, revokedAt (nullable — null means active).
+
+5. merchantPlatforms — which third-party apps each merchant has enabled (ServiceTitan today, Tekmetric/Housecall Pro/Jobber later). Fields: merchantId, platform (text machine ID, NOT an enum — kept open for new adapters), status (enabled/disabled), config (jsonb for per-platform settings like ST tenant ID in v2). Unique on (merchantId, platform).
+
+6. transactions — audit log of every payment link generated.
+   - merchantId, userId (both not-null, restrict on delete)
+   - sourcePlatform (text — 'servicetitan' etc.)
+   - gateway (gateway_name enum — which adapter actually handled this one; important for audit integrity when merchants switch gateways)
+   - externalInvoiceId (platform's invoice ID, e.g., ServiceTitan's numeric Id)
+   - invoiceNumber (user-facing, nullable)
+   - amount (numeric(12,2), dollars not cents)
+   - customerName, customerEmail
+   - gatewayInvoiceId (the gateway's ID for the invoice it created, nullable on failure)
+   - paymentLinkUrl (nullable on failure)
+   - status (pgEnum 'transaction_status': 'created', 'failed')
+   - errorMessage (text, populated on failure)
+   - createdAt
+   - Indexes: (merchantId, createdAt desc) for recent-activity queries, userId, (sourcePlatform, externalInvoiceId)
+
+Barrel file: lib/db/src/schema/index.ts re-exports everything.
+
+Generate and apply the migration against the Replit postgres, verify tables exist. No seed data yet.
+
+Report back with the migration SQL filename and \dt output confirming all six tables plus the partial unique index on merchantGateways.
