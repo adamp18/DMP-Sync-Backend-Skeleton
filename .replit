@@ -18,3 +18,15 @@ expertMode = true
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 20000
+
+[userenv]
+
+[userenv.shared]
+JWT_SECRET = "c8d337d4b320f2a96096096dffe8340d477f19114b94056b9e3b664613b674065045d64335d1a65f1d1875dcf417c8fbd6e6e0aa4bcb8a8d829dd3854a585f21"
+JWT_REFRESH_SECRET = "58a88dd0ddc654985b25ae31bba61d19cd9363950527ce36152ed88ab4ac812d815aee28e7ac7dbd47b10cdf274236cf245693c5d547a35cb1b0b40cdc1ebad6"
+ADMIN_UI_ORIGIN = "http://localhost:5173"
+EXTENSION_ORIGIN = "chrome-extension://"
+
+[[ports]]
+localPort = 8080
+externalPort = 80

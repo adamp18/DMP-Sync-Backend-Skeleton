@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
-import healthRouter from "./health";
 
 const router: IRouter = Router();
 
-router.use(healthRouter);
+router.get("/health", (_req, res) => {
+  res.json({ ok: true, ts: new Date().toISOString() });
+});
 
 export default router;
