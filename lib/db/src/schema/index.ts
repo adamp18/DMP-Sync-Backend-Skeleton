@@ -4,4 +4,7 @@ export * from "./merchantGateways";
 export * from "./users";
 export * from "./sessions";
 export * from "./merchantPlatforms";
+export * from "./terminals";
+export * from "./vaultedCards";
+export * from "./recurringSchedules";
 export * from "./transactions";

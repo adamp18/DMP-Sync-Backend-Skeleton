@@ -5,6 +5,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -52,6 +53,12 @@ export const merchantGatewaysTable = pgTable(
     uniqueIndex("merchant_gateways_one_primary_per_merchant_idx")
       .on(table.merchantId)
       .where(sql`${table.isPrimary} = true`),
+    // Required by composite FKs from terminals / vaulted_cards /
+    // recurring_schedules / transactions to prevent cross-tenant linking.
+    unique("merchant_gateways_id_merchant_id_unique").on(
+      table.id,
+      table.merchantId,
+    ),
   ],
 );
 

@@ -8,6 +8,20 @@
       "when": 1776975451634,
       "tag": "0000_deep_magus",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777050130472,
+      "tag": "0001_worthless_madame_web",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777050359603,
+      "tag": "0002_lovely_vivisector",
+      "breakpoints": true
     }
   ]
 }
