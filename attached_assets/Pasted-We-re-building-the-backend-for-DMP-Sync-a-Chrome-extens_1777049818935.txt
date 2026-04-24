@@ -1,0 +1,17 @@
+We're building the backend for DMP Sync — a Chrome extension that acts as an embedded omni-channel payment terminal alongside merchants' existing software (ServiceTitan first). Cashiers take payments through multiple channels: pay-by-link, keyed card (tokenized), push-to-physical-terminal, recurring schedules, ACH, charge-against-saved-card, and refund/void against prior transactions. Backend routes each channel to the merchant's configured payment gateway (Fluid Pay, NMI, or Dejavoo SPIn — multi-gateway from day one).
+
+Add the foundational database schema to lib/db/src/schema/ that supports this. Tables needed:
+
+- Merchants (tenants — identity and branding only; no gateway credentials live here)
+- Gateway configurations (each merchant can have multiple gateways configured, exactly one is primary; credential shape varies by gateway so store as jsonb and treat as ciphertext — we'll add encryption later)
+- Users (belong to a merchant, or are DMP super_admins with no merchant; roles: super_admin, merchant_admin, merchant_user)
+- Sessions (opaque refresh tokens with server-side revocation — store the sha256, not the plaintext)
+- Merchant platforms (which third-party apps each merchant has enabled; keep open-ended, new adapters will be added)
+- Terminals (physical card terminals registered per merchant per gateway; used by the push-to-terminal channel — e.g., Dejavoo device IDs, NMI terminal references)
+- Vaulted cards (tokenized cards saved per customer per gateway; used by charge-saved-card and recurring channels; display-only fields for last four / brand / exp, never raw PAN)
+- Recurring schedules (our merchant-side record of schedules created on the gateway — references a vaulted card, tracks frequency/start/end or installment count)
+- Transactions (audit log of every payment action across every channel; must record channel, gateway, source platform, plus optional references to terminal / vaulted card / recurring schedule / parent transaction for refunds and voids)
+
+Use idiomatic Drizzle + postgres-js. Generate and apply the migration. No seed data yet.
+
+Report back with the migration filename and a \dt of the resulting tables.
