@@ -16,15 +16,34 @@ import { errorHandler, notFoundHandler } from "./middleware/error.js";
 
 const app: Express = express();
 
+const isProduction = env.NODE_ENV === "production";
+
+// Exact-origin allowlist for the admin portal and any other first-party web
+// frontends. Comma-separated in env; applies in both development and
+// production.
 const allowedOrigins = new Set(
   env.ADMIN_UI_ORIGIN.split(",")
     .map((o) => o.trim())
     .filter(Boolean),
 );
 
-const extensionOriginPrefixes = env.EXTENSION_ORIGIN.split(",")
-  .map((o: string) => o.trim())
-  .filter(Boolean);
+// Chrome extension policy:
+//   - Production: ONLY the exact `chrome-extension://<id>` origins listed in
+//     EXTENSION_ORIGIN (comma-separated) are accepted. Each entry is the full
+//     origin of a published Web Store extension build.
+//   - Development: ANY `chrome-extension://*` origin is accepted, because
+//     unpacked extension IDs differ per machine and change every reload.
+const extensionAllowlist = new Set(
+  env.EXTENSION_ORIGIN.split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
+);
+
+function isExtensionOriginAllowed(origin: string): boolean {
+  if (!origin.startsWith("chrome-extension://")) return false;
+  if (!isProduction) return true;
+  return extensionAllowlist.has(origin);
+}
 
 app.use(
   pinoHttp({
@@ -47,12 +66,13 @@ app.use(
 app.use(
   cors({
     origin(origin, callback) {
+      // Same-origin requests and non-browser clients (e.g. curl) send no Origin.
       if (!origin) return callback(null, true);
       if (allowedOrigins.has(origin)) return callback(null, true);
-      if (extensionOriginPrefixes.some((p: string) => origin.startsWith(p))) {
-        return callback(null, true);
-      }
-      return callback(new Error(`Origin ${origin} not allowed by CORS`));
+      if (isExtensionOriginAllowed(origin)) return callback(null, true);
+      // Disallowed: don't throw — just omit CORS headers. The browser will
+      // block the response, and the server log stays clean (no spurious 500s).
+      return callback(null, false);
     },
     credentials: true,
   }),

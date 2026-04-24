@@ -12,10 +12,11 @@ const envSchema = z.object({
   // separate signing secret is required. Server-side revocation is enforced
   // via the `sessions` table.
   ADMIN_UI_ORIGIN: z.string().min(1, "ADMIN_UI_ORIGIN is required"),
-  EXTENSION_ORIGIN: z
-    .string()
-    .min(1, "EXTENSION_ORIGIN is required")
-    .default("chrome-extension://"),
+  // Comma-separated full chrome-extension:// origins for the production
+  // allowlist (e.g. "chrome-extension://abcdefghijklmnopqrstuvwxyzabcdef").
+  // Ignored in development, where any chrome-extension:// origin is allowed
+  // (unpacked extension IDs differ per machine and per reload).
+  EXTENSION_ORIGIN: z.string().default(""),
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),
