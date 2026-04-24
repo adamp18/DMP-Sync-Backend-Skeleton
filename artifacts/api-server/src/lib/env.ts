@@ -8,7 +8,9 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
-  JWT_REFRESH_SECRET: z.string().min(1, "JWT_REFRESH_SECRET is required"),
+  // NOTE: refresh tokens are opaque random strings, not JWTs, so no
+  // separate signing secret is required. Server-side revocation is enforced
+  // via the `sessions` table.
   ADMIN_UI_ORIGIN: z.string().min(1, "ADMIN_UI_ORIGIN is required"),
   EXTENSION_ORIGIN: z
     .string()

@@ -22,8 +22,9 @@ ORM, JWT auth, Zod validation, and pino logging.
 
    - `DATABASE_URL` — Postgres connection string (Replit provisions this
      automatically when a database is attached)
-   - `JWT_SECRET`, `JWT_REFRESH_SECRET` — long random strings used to sign
-     access / refresh tokens
+   - `JWT_SECRET` — long random string used to sign the short-lived
+     stateless access token (refresh tokens are opaque and stored hashed
+     in the `sessions` table, so no second secret is required)
    - `ADMIN_UI_ORIGIN` — origin of the React admin portal (comma-separated
      list supported)
    - `EXTENSION_ORIGIN` — Chrome extension origin prefix
